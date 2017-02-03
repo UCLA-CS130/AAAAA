@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
     boost::asio::io_service io_service;
     
     // create and start server
-    server s(io_service, info.port);
+    server s(io_service, info.port, info.functions);
     io_service.run();
   }
   catch (std::exception& e)

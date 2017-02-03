@@ -1,1 +1,3 @@
 port 8080;
+echo_dir /echo;
+static_dir /static; 

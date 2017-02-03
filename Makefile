@@ -12,8 +12,8 @@ UTILS_TEST=test/utils_test.cpp
 SERVER_TEST=test/server_test.cpp
 PARSER_TEST=test/config_parser_test.cc
 
-all: server.o session.o main.o config_parser.o utils.o
-	g++ -o web-server main.o server.o session.o config_parser.o utils.o $(LDFLAGS) $(CXXFLAGS)
+all: server.o session.o main.o config_parser.o utils.o HttpRequest.o
+	g++ -o web-server main.o server.o session.o config_parser.o utils.o HttpRequest.o $(LDFLAGS) $(CXXFLAGS)
 
 
 server.o: server.cpp server.h
@@ -30,6 +30,9 @@ utils.o: utils.cpp utils.h
 
 main.o: main.cpp server.h session.h $(CP_LOC)config_parser.h utils.h
 	g++ -c main.cpp $(LDFLAGS) $(CXXFLAGS)
+
+HttpRequest.o: HttpRequest.h HttpRequest.cpp
+	g++ -c HttpRequest.cpp $(LDFLAGS) $(CXXFLAGS)
 
 .PHONY: clean, all, test
 
