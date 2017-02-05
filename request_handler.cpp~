@@ -5,8 +5,8 @@
 #include <boost/lexical_cast.hpp>
 #include "mime_types.h"
 #include "reply.h"
-#include "request.h"
 
+request_handler::request_handler(){}
 
 void request_handler::handle_request(std::string request_path, reply& rep)
 {
@@ -43,6 +43,7 @@ void request_handler::handle_request(std::string request_path, reply& rep)
 
   // Open the file to send back.
   std::string full_path = request_path;
+  std::cout << full_path << std::endl;
   std::ifstream is(full_path.c_str(), std::ios::in | std::ios::binary);
   if (!is)
   {

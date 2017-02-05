@@ -45,10 +45,8 @@ int session::handle_request(const boost::system::error_code& error,
       request_handler rq_handler;
       reply rep;
       rq_handler.handle_request(request_path, rep);
-      //stuff to handle static file handling goes here. 
-      //we should modularize our code so there are separate classes 
-      //for sending static files and for sending echos
-      std::cout << "Static File Handling Yet To Be Implemented" << std::endl;
+      std::cout << rep.content << std::endl;
+      //write out here
     }
     else{
       //error case send error response

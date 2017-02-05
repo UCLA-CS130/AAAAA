@@ -12,8 +12,8 @@ UTILS_TEST=test/utils_test.cpp
 SERVER_TEST=test/server_test.cpp
 PARSER_TEST=test/config_parser_test.cc
 
-all: server.o session.o main.o config_parser.o utils.o HttpRequest.o
-	g++ -o web-server main.o server.o session.o config_parser.o utils.o HttpRequest.o $(LDFLAGS) $(CXXFLAGS)
+all: server.o session.o main.o config_parser.o utils.o HttpRequest.o reply.o request_handler.o mime_types.o
+	g++ -o web-server main.o server.o session.o config_parser.o utils.o HttpRequest.o request_handler.o reply.o mime_types.o $(LDFLAGS) $(CXXFLAGS)
 
 
 server.o: server.cpp server.h
