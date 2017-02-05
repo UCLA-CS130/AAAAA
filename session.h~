@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 #include <vector>
 #include <map>
+#include "request_handler.h"
 // for tcp type
 using boost::asio::ip::tcp;
 
