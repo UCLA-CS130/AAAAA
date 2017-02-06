@@ -12,7 +12,7 @@ UTILS_TEST=test/utils_test.cpp
 SERVER_TEST=test/server_test.cpp
 PARSER_TEST=test/config_parser_test.cc
 
-all: server.o session.o main.o config_parser.o utils.o HttpRequest.o reply.o request_handler.o mime_types.o
+all: server.o session.o main.o config_parser.o utils.o HttpRequest.o
 	g++ -o web-server main.o server.o session.o config_parser.o utils.o HttpRequest.o request_handler.o reply.o mime_types.o $(LDFLAGS) $(CXXFLAGS)
 
 
@@ -48,10 +48,9 @@ mime_types.o: mime_types.h mime_types.cpp
 test: 
 	g++ -c $(CP_LOC)config_parser.cc -g $(CXXFLAGS)
 	g++ -c utils.cpp $(LDFLAGS) $(CXXFLAGS)
-	g++ -c HttpRequest.cpp $(LDFLAGS) $(CXXFLAGS)
 	g++ -std=c++0x -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc
 	ar -rv libgtest.a gtest-all.o
-	g++ -isystem ${GTEST_DIR}/include ${SESSION_TEST} ${GTEST_DIR}/src/gtest_main.cc libgtest.a utils.o config_parser.o HttpRequest.o -o session_test ${LDFLAGS} ${CXXFLAGS}
+	g++ -isystem ${GTEST_DIR}/include ${SESSION_TEST} ${GTEST_DIR}/src/gtest_main.cc libgtest.a utils.o config_parser.o -o session_test ${LDFLAGS} ${CXXFLAGS}
 	g++ -isystem ${GTEST_DIR}/include ${UTILS_TEST} ${GTEST_DIR}/src/gtest_main.cc libgtest.a utils.o config_parser.o -o utils_test ${LDFLAGS} ${CXXFLAGS}
 	g++ -isystem ${GTEST_DIR}/include ${PARSER_TEST} ${GTEST_DIR}/src/gtest_main.cc libgtest.a utils.o config_parser.o -o config_parser_test ${LDFLAGS} ${CXXFLAGS}
 	g++ -isystem ${GTEST_DIR}/include ${SERVER_TEST} ${GTEST_DIR}/src/gtest_main.cc libgtest.a utils.o config_parser.o -o server_test ${LDFLAGS} ${CXXFLAGS}
@@ -59,7 +58,6 @@ test:
 	./server_test
 	./session_test
 	./utils_test
-	python2 echo_integration.py
 
 clean:
 	rm -f *.o *.gcno *.gcov *.gcda
