@@ -40,8 +40,8 @@ RequestHandler::Status StaticHandler::Init(const std::string& uri_prefix, const 
 
 // TODO: url is empty now, might need to change Init? or somehow modify config to have url in it. Also for files that cannot be found, NotFoundHandler has to be invoked. How do we do that?
 RequestHandler::Status StaticHandler::HandleRequest(const Request& request, Response* response) {
-    /*std::cout << "========= Handling Static =========" << std::endl;
-    std::string abs_path = get_exec_path() + "/public" + get_path_from_url(url);
+    std::cout << "========= Handling Static =========" << std::endl;
+    /*std::string abs_path = get_exec_path() + "/public" + get_path_from_url(url);
     std::cout << "Serving file from: " << abs_path << std::endl;
 
     if (!file_exists(abs_path)) {

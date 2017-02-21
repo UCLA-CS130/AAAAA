@@ -105,22 +105,30 @@ std::string session::convert_buffer()
 
 
 //get the longest prefix that matches with what's specified in config. If no match is found, an empty string is returned
+//for example: "/foo/bar" gets matched with "/foo/bar" before it gets matched with "/foo"
 std::string session::get_function_from_url(const std::string original_url)
 {
-  std::string url = original_url + "/"; //so that we can handle the part after the last slash
+  std::string url;
+  if (original_url[original_url.length() - 1] != '/')
+    url = original_url + "/"; //so that we can handle the part after the last slash
+  else
+    url = original_url;
   std::string function = "";
   int startPos = url.find("/", 0);
   int upto = url.length();
   int lastPos;
   std::string subUrl;
+  //since we check lastPos == 0 for no match found, we need to take care of the corner case when either there's nothing after the port number or there's only one slash. In case "/" is specified in config.
+  if (upto == 1 && function_mapping.count("/") != 0){
+    return "/";
+  }
   while (true){
     lastPos = url.rfind("/", upto);
     if (lastPos == 0){
       break;
     }
     subUrl = url.substr(startPos, lastPos);
-    if (function_mapping.count(subUrl) != 0 or subUrl == ""){
-      std::cout << subUrl << std::endl;
+    if (function_mapping.count(subUrl) != 0){
       return subUrl;
     }
     upto = lastPos - 1;
