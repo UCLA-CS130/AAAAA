@@ -1,11 +1,15 @@
 # This is a comment
 port 2020;
 
-path / StaticHandler {
+path /static StaticHandler {
   root /public;
 }
 
-path /echo EchoHandler {}
+path /echo EchoHandler{}
+
+path /e/c/h/o EchoHandler {}
+
+path /e/c EchoHandler {}
 
 # Default response handler if no handlers match.
 default NotFoundHandler {}
