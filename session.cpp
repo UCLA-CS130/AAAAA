@@ -33,7 +33,14 @@ int session::handle_request(const boost::system::error_code& error,
 
   std::string message_request = convert_buffer();
   auto request = Request::Parse(message_request);
-
+  std::string url = request->uri();
+  std::string longest_prefix = get_function_from_url(url);
+  std::shared_ptr<RequestHandler> handler_ptr = function_mapping[longest_prefix];
+  Response response;
+  if (handler_ptr == NULL){
+    handler_ptr = std::shared_ptr<RequestHandler>(new NotFoundHandler());
+  }
+  handler_ptr->HandleRequest(*request, &response);
   // std::unique_ptr<handler> handler_ptr;
 
   // std::cout << "Function: " << function << std::endl;
@@ -58,7 +65,7 @@ int session::handle_request(const boost::system::error_code& error,
   //   std::cerr << error.message() << std::endl;
   //   return -1;
   // }
-  write_string("TODO");
+  write_string(response.ToString());
   return 0;
 
 }
@@ -97,10 +104,29 @@ std::string session::convert_buffer()
 }
 
 
-
-std::string session::get_function_from_url(std::string url)
+//get the longest prefix that matches with what's specified in config. If no match is found, an empty string is returned
+std::string session::get_function_from_url(const std::string original_url)
 {
+  std::string url = original_url + "/"; //so that we can handle the part after the last slash
   std::string function = "";
+  int startPos = url.find("/", 0);
+  int upto = url.length();
+  int lastPos;
+  std::string subUrl;
+  while (true){
+    lastPos = url.rfind("/", upto);
+    if (lastPos == 0){
+      break;
+    }
+    subUrl = url.substr(startPos, lastPos);
+    if (function_mapping.count(subUrl) != 0 or subUrl == ""){
+      std::cout << subUrl << std::endl;
+      return subUrl;
+    }
+    upto = lastPos - 1;
+  }
+  std::cout << "No Match found" << std::endl;
+  return "";
   // TODO FIX THIS
   // // TODO: log these errors
   // if (url.length() == 0)
@@ -122,7 +148,4 @@ std::string session::get_function_from_url(std::string url)
   //   std::cerr << "Error in determining function" << std::endl;
   //   std::cerr << "URL causing error :" << url << std::endl;
   // }
-
-  return function;
 }
-

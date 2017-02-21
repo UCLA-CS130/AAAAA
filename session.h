@@ -27,7 +27,7 @@ public:
 
 private:
   std::string convert_buffer();
-  std::string get_function_from_url(std::string url);
+  std::string get_function_from_url(const std::string original_url);
 
   tcp::socket socket_;
   std::map <std::string, std::shared_ptr<RequestHandler>> function_mapping;

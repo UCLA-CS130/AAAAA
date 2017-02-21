@@ -7,11 +7,24 @@
 #include <vector>
 #include <string>
 
+RequestHandler::Status NotFoundHandler::Init(const std::string& uri_prefix, const NginxConfig& config) {
+    return RequestHandler::PASS;
+}
+
+RequestHandler::Status NotFoundHandler::HandleRequest(const Request& request, Response* response){
+    response->SetStatus(Response::NOT_FOUND);
+    response->AddHeader("Content-Length", std::to_string(request.raw_request().size() - 4));
+    response->AddHeader("Content-Type", "text/plain");
+    response->SetBody("404 NOT FOUND");
+    return RequestHandler::PASS; //should this be FAIL actually?
+}
+
 RequestHandler::Status EchoHandler::Init(const std::string& uri_prefix, const NginxConfig& config) {
     return RequestHandler::PASS;
 }
 
 RequestHandler::Status EchoHandler::HandleRequest(const Request& request, Response* response) {
+    std::cout << "In EchoHandler" << std::endl;
     response->SetStatus(Response::OK);
     response->AddHeader("Content-Length", std::to_string(request.raw_request().size() - 4));
     response->AddHeader("Content-Type", "text/plain");
@@ -25,8 +38,28 @@ RequestHandler::Status StaticHandler::Init(const std::string& uri_prefix, const 
     return RequestHandler::PASS;
 }
 
-// TODO
+// TODO: url is empty now, might need to change Init? or somehow modify config to have url in it. Also for files that cannot be found, NotFoundHandler has to be invoked. How do we do that?
 RequestHandler::Status StaticHandler::HandleRequest(const Request& request, Response* response) {
+    /*std::cout << "========= Handling Static =========" << std::endl;
+    std::string abs_path = get_exec_path() + "/public" + get_path_from_url(url);
+    std::cout << "Serving file from: " << abs_path << std::endl;
+
+    if (!file_exists(abs_path)) {
+      // TODO: 404 Error
+      std::cerr << "Error: " << abs_path << " does not exist" << std::endl;
+      return RequestHandler::FAIL;
+    }
+
+    // save content_type header based on requested file extension
+    std::string content_type = get_content_type(abs_path);
+
+    // raw byte array
+    std::vector<char> to_send = read_file(abs_path);
+    response->SetStatus(Response::OK);
+    response->AddHeader("Content-Length", std::to_string(to_send.size()));
+    response->AddHeader("Content-Type", content_type);
+    std::string to_send_string(to_send.begin(), to_send.end());
+    response->SetBody(to_send_string);*/
     return RequestHandler::PASS;
 }
 
@@ -34,9 +67,9 @@ std::string StaticHandler::get_path_from_url(std::string url) {
   // Assumption: url must be prefixed with "/static/" at this point
   //             get_function_from_url has already been called on url
   int second_slash_pos = url.find("/", 1);
+  std::cout << "second_slash_pos: " << second_slash_pos << std::endl;
   // from second slash to end of string is path
   std::string path = url.substr(second_slash_pos, std::string::npos);
-
   return path;
 }
 
@@ -106,6 +139,7 @@ std::string StaticHandler::get_content_type(std::string filename) {
     }
 
     std::string ext = filename.substr(i + 1, std::string::npos);
+    std::cout << "ext: " << ext << std::endl;
     std::string content_type;
 
     // based on ext decide content_type header

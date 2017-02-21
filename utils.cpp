@@ -21,18 +21,19 @@ ServerInfo setup_info_struct(NginxConfig config) {
         else if (curr_statement == "path" && config.statements_[i]->tokens_.size() == 3) {
 
             std::string uri_prefix = config.statements_[i]->tokens_[1];
+       
             std::string handler_name = config.statements_[i]->tokens_[2];
 
             std::shared_ptr<RequestHandler> handler;
 
             if (handler_name == "EchoHandler") {
                 handler = std::shared_ptr<RequestHandler>(new EchoHandler);
-            } else { //if (handler_name == "StaticHandler") {
+            } else if (handler_name == "StaticHandler") {
                 handler = std::shared_ptr<RequestHandler>(new StaticHandler);
             }
-            // else {
-            //     // TODO return 404 handler
-            // }
+            else {
+                handler = std::shared_ptr<RequestHandler>(new NotFoundHandler);
+            }
 
             // TODO: unsure about lifetime being ok for this child_block
             handler->Init(uri_prefix, *(config.statements_[i]->child_block_));
@@ -44,7 +45,7 @@ ServerInfo setup_info_struct(NginxConfig config) {
             // TODO: handle setting default handler
         }
     }
-
+    info.handler_map[""] = std::move(std::shared_ptr<RequestHandler>(new NotFoundHandler));
     return info;
 }
 
