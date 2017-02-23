@@ -12,6 +12,8 @@ UTILS_TEST=test/utils_test.cpp
 SERVER_TEST=test/server_test.cpp
 PARSER_TEST=test/config_parser_test.cc
 HANDLER_TEST=test/handler_test.cpp
+REQUEST_TEST=test/http_request_test.cpp
+RESPONSE_TEST=test/http_response_test.cpp
 
 OBJECT_FILES=http_request.o http_response.o utils.o config_parser.o handler.o
 
@@ -56,6 +58,8 @@ test:
 	g++ -isystem ${GTEST_DIR}/include ${PARSER_TEST} ${GTEST_DIR}/src/gtest_main.cc libgtest.a $(OBJECT_FILES) -o config_parser_test ${LDFLAGS} ${CXXFLAGS}
 	g++ -isystem ${GTEST_DIR}/include ${SERVER_TEST} ${GTEST_DIR}/src/gtest_main.cc libgtest.a $(OBJECT_FILES) -o server_test ${LDFLAGS} ${CXXFLAGS}
 	g++ -isystem ${GTEST_DIR}/include ${HANDLER_TEST} ${GTEST_DIR}/src/gtest_main.cc libgtest.a $(OBJECT_FILES) -o handler_test ${LDFLAGS} ${CXXFLAGS}
+	g++ -isystem ${GTEST_DIR}/include ${REQUEST_TEST}   ${GTEST_DIR}/src/gtest_main.cc libgtest.a ${OBJECT_FILES} -o  http_request_test ${LDFLAGS} ${CXXFLAGS}
+	g++ -isystem ${GTEST_DIR}/include ${RESPONSE_TEST}    ${GTEST_DIR}/src/gtest_main.cc libgtest.a ${OBJECT_FILES} -o  http_response_test ${LDFLAGS} ${CXXFLAGS}
 
 	# Run Tests
 	./handler_test
@@ -63,7 +67,9 @@ test:
 	./server_test
 	./session_test
 	./utils_test
-	python2 test/integration_test.py
+	./http_request_test
+	./http_response_test
+	#python2 test/integration_test.py
 
 clean:
 	# Note: be careful of make clean removing *_test
