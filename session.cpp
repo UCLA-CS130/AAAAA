@@ -14,16 +14,21 @@ session::session(boost::asio::io_service& io_service,
   std::map <std::string, std::pair<std::string, std::shared_ptr<RequestHandler>>> handler_map)
   : socket_(io_service), handler_map(handler_map) {}
 
-tcp::socket& session::socket() {
+tcp::socket& session::socket()
+{
   return socket_;
 }
 
-void session::start() {
+void session::start()
+{
   boost::asio::async_read_until(socket_, buffer, "\r\n\r\n",
-      boost::bind(&session::handle_request, this));
+      boost::bind(&session::handle_request, this,
+      boost::asio::placeholders::error,
+      boost::asio::placeholders::bytes_transferred));
 }
 
-int session::handle_request(){
+int session::handle_request(const boost::system::error_code& error,
+    size_t bytes_transferred){
 
   auto request = Request::Parse(get_message_request());
 
@@ -47,7 +52,7 @@ int session::handle_request(){
     std::cerr << "Session: error when handling uri: " << request->uri() << std::endl;
     std::unique_ptr<RequestHandler> error_handler (new NotFoundHandler);
     error_handler->HandleRequest(*request, &response);
-  }
+  } 
 
   //calls a function to perform the logging to the log file
   log_request_response(request->uri(), response.ToString());

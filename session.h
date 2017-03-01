@@ -21,7 +21,7 @@ public:
   tcp::socket& socket();
   void start();
   // handles requests by seeing which type of response is required
-  int handle_request();
+  int handle_request(const boost::system::error_code& error, size_t bytes_transferred);
   // writes out a string to the socket and closes the connection
   void write_string(std::string send);
 

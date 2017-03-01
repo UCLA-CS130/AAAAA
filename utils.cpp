@@ -11,7 +11,7 @@ ServerInfo setup_info_struct(NginxConfig config) {
     info.port = -1;
 
     int num_statements = config.statements_.size();
-    //map of uri handlers to names
+    //map of uri handlers to names 
     std::map<std::string, std::string> handlers_for_status;
     std::string status_uri;
     // parse away our config file into info struct
@@ -21,14 +21,12 @@ ServerInfo setup_info_struct(NginxConfig config) {
 
         if (curr_statement == "port" && config.statements_[i]->tokens_.size() == 2) {
             info.port = std::atoi(config.statements_[i]->tokens_[1].c_str());
-        } else if (curr_statement == "num_threads" && config.statements_[i]->tokens_.size() == 2) {
-            info.num_threads = std::atoi(config.statements_[i]->tokens_[1].c_str());
         }
         else if (curr_statement == "path" && config.statements_[i]->tokens_.size() == 3) {
 
             std::string uri_prefix = config.statements_[i]->tokens_[1];
             std::string handler_name = config.statements_[i]->tokens_[2];
-
+            
             if (handler_name == "StatusHandler"){
                 status_uri = uri_prefix;
             }
@@ -55,7 +53,7 @@ ServerInfo setup_info_struct(NginxConfig config) {
     }
     //such that empty string is mapped to NotFoundHandler
     info.handler_map[""] = std::make_pair("NotFoundHandler", std::move(std::shared_ptr<RequestHandler>(new NotFoundHandler)));
-
+    
     if (status_uri != ""){
         writeHandlersToFile(handlers_for_status);
     }

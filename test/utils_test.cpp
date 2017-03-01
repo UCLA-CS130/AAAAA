@@ -11,7 +11,7 @@
 TEST(MainTest, setup_server_info_struct) {
   NginxConfigParser parser;
   NginxConfig config;
-  char config_file[] = "./test/test_config";
+  char config_file[] = "simple_config";
 
   if (!parser.Parse(config_file, &config)) {
     std::cerr << "Error: malformed config file." << std::endl;

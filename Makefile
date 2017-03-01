@@ -1,4 +1,4 @@
-LDFLAGS=-pthread -lboost_system -lboost_thread
+LDFLAGS=-pthread -lboost_system
 CXXFLAGS=-Wall -Werror -std=c++11 -fprofile-arcs -ftest-coverage
 
 # directory locations
@@ -17,8 +17,8 @@ RESPONSE_TEST=test/http_response_test.cpp
 
 OBJECT_FILES=http_request.o http_response.o utils.o config_parser.o handler.o
 
-all: server.o session.o main.o config_parser.o utils.o http_request.o http_response.o handler.o
-	g++ -o web-server main.o server.o session.o config_parser.o utils.o http_request.o http_response.o handler.o $(LDFLAGS) $(CXXFLAGS)
+all: server.o session.o main.o config_parser.o utils.o http_request.o http_response.o handler.o response_parser.o
+	g++ -o web-server main.o server.o session.o config_parser.o utils.o http_request.o http_response.o handler.o response_parser.o $(LDFLAGS) $(CXXFLAGS)
 
 server.o: server.cpp server.h
 	g++ -c server.cpp $(LDFLAGS) $(CXXFLAGS)
@@ -43,6 +43,9 @@ http_response.o: http_response.h http_response.cpp
 
 handler.o: handler.h handler.cpp
 	g++ -c handler.cpp $(LDFLAGS) $(CXXFLAGS)
+
+response_parser.o: response_parser.h response_parser.cpp
+	g++ -c response_parser.cpp $(LDFLAGS) $(CXXFLAGS)
 
 .PHONY: clean, all, test
 
@@ -69,7 +72,7 @@ test:
 	./utils_test
 	./http_request_test
 	./http_response_test
-	python2 test/integration_multithread_test.py
+	python2 test/integration_test.py
 
 clean:
 	# Note: be careful of make clean removing *_test

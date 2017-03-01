@@ -1,11 +1,16 @@
 #include "handler.h"
 #include "http_response.h"
 #include "http_request.h"
+#include "response_parser.h"
 
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <string>
+
+#include <istream>
+#include <ostream>
+#include <boost/asio.hpp>
 
 
 // Dynamic handler creation code
@@ -17,21 +22,6 @@ RequestHandler* RequestHandler::CreateByName(const char* type) {
     return nullptr;
   }
   return (*type_and_builder->second)();
-}
-
-//////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////// Blocking Handler  /////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////
-
-RequestHandler::Status BlockingHandler::Init(const std::string& uri_prefix, const NginxConfig& config) {
-    return RequestHandler::PASS;
-}
-
-RequestHandler::Status BlockingHandler::HandleRequest(const Request& request, Response* response){
-    std::cout << "\nBlockingHandler::HandleRequest" << std::endl;
-
-    while (true) {}
-    return RequestHandler::PASS;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -212,14 +202,14 @@ bool StatusHandler::addHandledRequests() {
 
     infile.close();
 
-    return true;
+    return true; 
 }
 
 //reads the log file of handler names and their corresponding uri's and fills a map with them
 bool StatusHandler::addHandlerMapping() {
     std::ifstream infile("handler_names.txt");
 
-    if (!infile.is_open())
+    if (!infile.is_open()) 
         return false;
 
     std::string name, url;
@@ -273,4 +263,202 @@ RequestHandler::Status StatusHandler::HandleRequest(const Request& request, Resp
     return RequestHandler::PASS;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// Proxy Handler /////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
 
+RequestHandler::Status ProxyHandler::Init(const std::string& uri_prefix, const NginxConfig& config) {
+
+    for (unsigned int i = 0; i < config.statements_.size(); i++){
+        // get the root from the child block
+        if (config.statements_[i]->tokens_[0] == "host" && config.statements_[i]->tokens_.size() == 2){
+            host = config.statements_[i]->tokens_[1];
+        }
+        else if (config.statements_[i]->tokens_[0] == "port" && config.statements_[i]->tokens_.size() == 2){
+            port = config.statements_[i]->tokens_[1];
+        }
+    }
+    std::cout << "host: " << host << std::endl;
+    std::cout << "port: " << port << std::endl;
+
+    this->uri_prefix = uri_prefix;
+
+    return RequestHandler::PASS;
+}
+
+std::string ProxyHandler::get_response(std::string path)
+{
+
+  using boost::asio::ip::tcp;
+
+  try
+  {
+
+    boost::asio::io_service io_service;
+
+    // Get a list of endpoints corresponding to the server name.
+    tcp::resolver resolver(io_service);
+    tcp::resolver::query query(host, "http");
+    tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
+    // Try each endpoint until we successfully establish a connection.
+    tcp::socket socket(io_service);
+    boost::asio::connect(socket, endpoint_iterator);
+
+
+    // Form the request. We specify the "Connection: close" header so that the
+    // server will close the socket after transmitting the response. This will
+    // allow us to treat all data up until the EOF as the content.
+    boost::asio::streambuf request;
+    std::ostream request_stream(&request);
+    std::string request_str = "GET " + path + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" 
+    + "Accept: */*\r\n" + "Connection: keep-alive\r\n\r\n";
+    request_stream << request_str;
+
+    std::cout << "REQUEST: " << path << std::endl;
+    // Send the request.
+    boost::asio::write(socket, request);
+
+    // Read the response status line. The response streambuf will automatically
+    // grow to accommodate the entire line. The growth may be limited by passing
+    // a maximum size to the streambuf constructor.
+    boost::asio::streambuf response;
+
+    // Read the response headers, which are terminated by a blank line.
+    boost::asio::read_until(socket, response, "\r\n\r\n");
+
+    // Write whatever content we already have to output.
+    std::string s = "";
+    if (response.size() > 0){
+        std::string a( (std::istreambuf_iterator<char>(&response)), std::istreambuf_iterator<char>() );
+        s += a;
+    }
+
+    boost::system::error_code error;
+
+    if (!response_parser.Parse(s) == ResponseParser::ParseStatus::OK) {
+        std::cout << "Response parsing error!\n";
+    }   // Handle redirect
+    else if (response_parser.getStatus() == 302 && !response_parser.getRedirectPath().empty()) {
+        
+        // Assume redirect location has format "http://www.something.com/"
+        std::string parsed_redirect = response_parser.getRedirectPath();
+        parsed_redirect = parsed_redirect.substr(parsed_redirect.find("w"));
+
+        // Want to set host to "www.something.com" without the last slash
+        size_t first_slash = parsed_redirect.find("/");
+
+        std::string host_ = parsed_redirect.substr(0, first_slash);
+        host_ = host_.substr(0, host_.length());
+        std::cout << "HOST: " << host_ << std::endl;
+
+        // Get a list of endpoints corresponding to the server name.
+        tcp::resolver::query new_query(host_, "http");
+        endpoint_iterator = resolver.resolve(new_query);
+
+        // Try each endpoint until we successfully establish a connection.
+        boost::asio::connect(socket, endpoint_iterator);
+
+        // Construct new request with the proper host
+        std::string new_request_str = "GET " + path + " HTTP/1.1\r\n" + "Host: " + host_ + "\r\n" 
+        + "Accept: */*\r\n" + "Connection: keep-alive\r\n\r\n";
+
+        boost::asio::streambuf new_request;
+        std::ostream new_request_stream(&new_request);
+        new_request_stream << new_request_str;
+
+        boost::asio::write(socket, new_request);
+
+        boost::asio::streambuf response_redirect;
+        // Read the response headers, which are terminated by a blank line.
+        // boost::asio::read_until(socket, response_redirect, "\r\n\r\n");
+
+        // // Write whatever content we already have to output.
+        s = "";
+        // if (response_redirect.size() > 0){
+        //     std::string a( (std::istreambuf_iterator<char>(&response_redirect)), std::istreambuf_iterator<char>() );
+        //     s += a;
+        // }
+
+            // Read until EOF, writing data to output as we go.
+        while (boost::asio::read(socket, response_redirect,
+              boost::asio::transfer_at_least(1), error)){
+            std::string a( (std::istreambuf_iterator<char>(&response_redirect)), std::istreambuf_iterator<char>() );
+            s += a;
+        }
+    }
+    else { // Request returned 200
+
+        response_parser.emptyVector();
+        // Read until EOF, writing data to output as we go.
+        while (boost::asio::read(socket, response,
+              boost::asio::transfer_at_least(1), error)){
+            std::string a( (std::istreambuf_iterator<char>(&response)), std::istreambuf_iterator<char>() );
+            s += a;
+        }
+    }
+
+    if (error != boost::asio::error::eof)
+      throw boost::system::system_error(error);
+
+    return s;
+
+  }
+  catch (std::exception& e)
+  {
+    std::cout << "Exception: " << e.what() << "\n";
+  }
+
+  return "";
+}
+
+RequestHandler::Status ProxyHandler::HandleRequest(const Request& request, Response* response) {
+    std::cout << "\nProxyHandler::HandleRequest" << std::endl;
+
+    response->SetStatus(Response::OK);
+
+    // Pass in the request uri
+    std::string request_uri = request.uri();
+    std::string response_string = get_response(request_uri);
+    // size_t content_index = response_string.find("Content-Type: ");
+    // std::string content_sub = response_string.substr(content_index);
+    // size_t end_row = content_sub.find("/");
+    // content_sub = content_sub.substr(0, end_row);
+
+    // if (content_sub == "image"){
+    //     size_t end_index = response_string.find("\r\n\r\n");
+    //     response->SetBody(response_string.substr(end_index + 4));
+    // }
+    // std::cout << response_string << std::endl; 
+
+    response_parser.Parse(response_string);
+
+    response->AddHeader("Content-Length", std::to_string(response_string.length()));
+
+    auto header_vec = response_parser.getHeaders();
+
+    for(auto i = header_vec.begin(); i != header_vec.end(); i++) {
+        if((*i).first == "Content-Type") {
+            size_t first_slash = (*i).second.find_first_of("/"); 
+            if((*i).second.substr(0, first_slash) == "image"){
+                size_t end_index = response_string.find("\r\n\r\n");
+                response->SetBody(response_string.substr(end_index + 4));
+                break;
+            }
+        }
+        if((*i).first == "Content") {
+            response->SetBody((*i).second); 
+            break;
+        }
+        //std::cout << "Name: " << (*i).first << " " << "Value: " <<  (*i).second << std::endl;
+        response->AddHeader((*i).first, (*i).second);
+        //res_str += (*it).first + ": " + (*it).second + "\r\n";
+    }
+
+    // response->AddHeader("Content-Type", response_parser.getContentType());
+    //response->SetBody(response_parser.getResponseBody());
+    //response->SetBody();
+    response_parser.emptyVector();
+
+    return RequestHandler::PASS;
+}
